@@ -2,6 +2,7 @@ import urllib.request
 import os.path
 
 class Video:
+    video_log = None
 
     def __init__(self):
         self.web_page = ''
@@ -43,9 +44,10 @@ class Video:
         print('Getting video file')
         if url != '':
             self.set_video_page_url(url)
-        self.id = self.get_web_page_url().rpartition('/')[2][:-10]
+        self.id = self.get_web_page_url().rpartition('/')[2].partition('?')[0]
         print(self.id + ' in progress')
         if not os.path.isfile(self.get_id() + '.mp4'):
             self.video_file = urllib.request.urlretrieve(self.get_video_page_url(), str(self.id) + '.mp4')
+            Video.video_log.write(self.get_web_page_url())
         #self.video_file_size = self.video_file.info().getheaders('Content-Length')[0]
 
