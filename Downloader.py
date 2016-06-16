@@ -6,6 +6,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium import webdriver
 import Video
 import os.path
+
+# Request the name of the file
+webpage_input = input("Enter Website: ")
+#---website = get_episode_list_page(webpage_input).splitlines()
+#---print(website)
+#print(website)
+# Open the file with reading permission
+website = open('webpage.html', 'r', encoding='utf8')
+episodes_to_download = input('Enter the episodes in the following format: \n1,2,6,8,100 etc \nor\n1-100,3')
+download_list = []
+
 def get_url(url_list, a_href_line):
     # String variable that holds the current URL
     url = ''
@@ -24,10 +35,15 @@ def get_url(url_list, a_href_line):
             # Otherwise slice the current line and record the URL part
             else:
                 url = a_href_line[beginning:i]
-
-                video_list.insert(0, Video.Video(url))
-                # Insert the url into the list of URL's (insert at the beginning because the website lists latest to earliest)
-                #url_list.insert(0, url)
+                id = url.rpartition('/')[2].partition('?')[0]
+                number = -1
+                for j in id.split('-'):
+                    if j.isdigit():
+                        number = int(j)
+                        break
+                if number in download_list:
+                    print('adding episode: ' + str(number))
+                    video_list.insert(0, Video.Video(url, id, number))
                 break
 def get_url_2(a_href_line):
     parts = a_href_line.split('"')[1]
@@ -58,13 +74,13 @@ def get_episode_list_page(webpage_input):
 
 def get_video(video_list):
     dlq = []
+    video_log_file = open('finished_video_list.txt', 'r+')
     for video in video_list:
-        print(video.get_web_page_url())
-        print(Video.Video.video_log.readlines())
         found = False
-        for line in Video.Video.video_log.readlines():
+        for line in video_log_file:
+            line = line.rstrip('\n')
             print('LINE = ' + line)
-            if video.get_web_page_url() in line:
+            if line in video.get_web_page_url():
                 found = True
                 break
         if not found:
@@ -90,6 +106,23 @@ def get_video(video_list):
                         print('Skipping episode ' + video.get_id() + ' due to timeout exception.')
                         driver.close()
                         break
+    video_log_file.close()
+
+
+def format_input(input=''):
+    download_list = []
+    if input == '':
+        return None
+    input_split_commas = input.split(', ')
+    for ep in input_split_commas:
+        if '-' in ep:
+            start = int(ep.split('-')[0])
+            end = int(ep.split('-')[1])
+            for i in range(start, end+1):
+                download_list.append(i)
+        else:
+            download_list.append(int(ep))
+    return download_list
 
 
 
@@ -98,19 +131,7 @@ def get_video(video_list):
 
 
 
-
-# Request the name of the file
-webpage_input = input("Enter Website: ")
-Video.Video.video_log = open('finished_video_list.log', 'r+')
-print(Video.Video.video_log.readlines())
-Video.Video.video_log.seek(0)
-#---website = get_episode_list_page(webpage_input).splitlines()
-#---print(website)
-#print(website)
-# Open the file with reading permission
-website = open('webpage.html', 'r', encoding='utf8')
-# Create a variable that states whether we have found the html list that holds the list of URL's
-#episode_list = False
+download_list = format_input(episodes_to_download)
 # Create a list that holds all the URL's for the pages of the videos (not the videos themselves)
 url_list = []
 video_url_list = [[]]
@@ -119,7 +140,7 @@ search_for_url(website, url_list)
 print(url_list)
 get_video(video_list)
 print('Done!')
-Video.Video.video_log.close()
+#Video.Video.video_log.close()
 print(len(url_list))
 #TODO: Getting episode list page through http rather than file
 #TODO: Being able to enter which episodes you want
