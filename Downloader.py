@@ -9,11 +9,9 @@ import os.path
 
 # Request the name of the file
 webpage_input = input("Enter Website: ")
-#---website = get_episode_list_page(webpage_input).splitlines()
-#---print(website)
-#print(website)
+website_name = webpage_input[:20]
 # Open the file with reading permission
-website = open('webpage.html', 'r', encoding='utf8')
+#website = open('webpage.html', 'r', encoding='utf8')
 episodes_to_download = input('Enter the episodes in the following format: \n1,2,6,8,100 etc \nor\n1-100,3')
 download_list = []
 
@@ -45,8 +43,36 @@ def get_url(url_list, a_href_line):
                     print('adding episode: ' + str(number))
                     video_list.insert(0, Video.Video(url, id, number))
                 break
-def get_url_2(a_href_line):
-    parts = a_href_line.split('"')[1]
+
+def get_url2(url_list, a_href_line):
+    # String variable that holds the current URL
+    url = ''
+    # Boolean that states whether the first quote of the tag has been found. If false, then we have not found a quote, but if true then we have found the first quote
+    first_quote_found = False
+    # Variable that holds the position of the first letter after the first quote
+    beginning = 0
+    # Looping through current line to isolate the URL
+    for i in range(0, len(a_href_line)):
+        # If a double quote is found, determine whether its the first or second
+        if a_href_line[i] == '"':
+            # If its the first then set the appropriate variable, record where the first quote is
+            if first_quote_found == False:
+                first_quote_found = True
+                beginning = i + 1
+            # Otherwise slice the current line and record the URL part
+            else:
+                url = website_name + a_href_line[beginning:i]
+                id = url.rpartition('/')[2].partition('?')[0]
+                number = -1
+                for j in id.split('-'):
+                    if j.isdigit():
+                        number = int(j)
+                        break
+                if number in download_list:
+                    print('adding episode: ' + str(number))
+                    video_list.insert(0, Video.Video(url, id, number))
+                break
+
 def search_for_url(website, video_list):
     episode_list = False
     for line in website:
@@ -60,7 +86,9 @@ def search_for_url(website, video_list):
         if episode_list and '<a href="' in line:
             # Making a copy of the line
             a_href_line = (line + '.')[:-1]
-            get_url(video_list, a_href_line)
+            get_url2(video_list, a_href_line)
+            #get_url(video_list, a_href_line)
+
 
 def get_episode_list_page(webpage_input):
     driver = webdriver.Chrome()
@@ -68,8 +96,9 @@ def get_episode_list_page(webpage_input):
     driver.get(webpage_input)
     wait = WebDriverWait(driver, 10)
     wait.until(EC.element_to_be_clickable((By.TAG_NAME, 'ul')))
-    return driver.page_source
+    page_source = driver.page_source
     driver.close()
+    return page_source
     #print(driver.find_element_by_tag_name('body'))
 
 def get_video(video_list):
@@ -124,14 +153,26 @@ def format_input(input=''):
             download_list.append(int(ep))
     return download_list
 
+def append_progress_file(series_name, episodes):
+    progress_file = open(series_name + '-progress.log', 'r+')
+    if not os.stat(progress_file).st_size == 0:
+        progress_file.write(episodes)
 
+def update_progress_file(series_name, episode_num):
+    progress_file = open(series_name + '-progress.log', 'r+')
+    if os.stat(progress_file).st_size == 0:
+        print('Progress for ' + series_name + ' complete.')
+        return None
+    episodes_left = progress_file.read().split(', ')
 
-
+def get_series_name(website):
+    print()
 
 
 
 
 download_list = format_input(episodes_to_download)
+website = get_episode_list_page(webpage_input).splitlines()
 # Create a list that holds all the URL's for the pages of the videos (not the videos themselves)
 url_list = []
 video_url_list = [[]]
@@ -143,6 +184,5 @@ print('Done!')
 #Video.Video.video_log.close()
 print(len(url_list))
 #TODO: Getting episode list page through http rather than file
-#TODO: Being able to enter which episodes you want
 #TODO: Print which episodes werent able to download
 #TODO: If program stops all of the sudden, write which episodes have finished downloading to a file for later reference
