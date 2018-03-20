@@ -1,4 +1,4 @@
-# AnimeDownloader
+# Video Downloader
 A tool used for downloading entire anime series automatically. Only works with specific websites. Windows Only.
 
 Requires: 
